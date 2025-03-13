@@ -1,13 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import SuccessSearchParams from '../../components/SuccessSearchParams';
 
 const LoginSuccessPage: React.FC = () => {
   return (
     <>
       {/* This component handles URL parameters and redirects */}
-      <SuccessSearchParams />
+      <Suspense fallback={null}>
+        <SuccessSearchParams />
+      </Suspense>
       
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-md">

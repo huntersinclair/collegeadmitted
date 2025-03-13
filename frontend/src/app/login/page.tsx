@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Input from '../components/Input';
@@ -76,7 +76,9 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       {/* This component handles URL parameters */}
-      <LoginSearchParams setServerError={setServerError} />
+      <Suspense fallback={null}>
+        <LoginSearchParams setServerError={setServerError} />
+      </Suspense>
       
       <div className="max-w-md w-full space-y-8">
         <div>
