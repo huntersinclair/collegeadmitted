@@ -1,44 +1,59 @@
-from pydantic_settings import BaseSettings
-from functools import lru_cache
 import os
-from typing import Optional
+from typing import Optional, Dict, Any
+from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+from functools import lru_cache
+
+# Load environment variables from .env file
+load_dotenv()
 
 class Settings(BaseSettings):
     """Application settings."""
     
-    # API Configuration
-    API_V1_STR: str = "/api/v1"
+    # API Settings
+    API_V1_STR: str = "/api"
     PROJECT_NAME: str = "College Admitted"
     
-    # Database Configuration
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_SERVER: str = "localhost"
-    POSTGRES_PORT: str = "5432"
-    POSTGRES_DB: str
+    # Database settings
+    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
+    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
+    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
+    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "collegeadmitted")
     
-    # JWT Configuration
-    SECRET_KEY: str
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    # Security settings
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "development_secret_key")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
     
-    # Mistral AI Configuration
-    MISTRAL_API_KEY: Optional[str] = None
+    # CORS settings
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    BACKEND_URL: str = os.getenv("BACKEND_URL", "http://localhost:8000")
     
-    # CORS Configuration
-    BACKEND_CORS_ORIGINS: list = ["http://localhost:3000"]
+    # OAuth2 settings
+    GOOGLE_CLIENT_ID: Optional[str] = os.getenv("GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET: Optional[str] = os.getenv("GOOGLE_CLIENT_SECRET")
+    FACEBOOK_CLIENT_ID: Optional[str] = os.getenv("FACEBOOK_CLIENT_ID")
+    FACEBOOK_CLIENT_SECRET: Optional[str] = os.getenv("FACEBOOK_CLIENT_SECRET")
     
+    # Email settings (for future use)
+    SMTP_TLS: bool = True
+    SMTP_PORT: Optional[int] = None
+    SMTP_HOST: Optional[str] = None
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    EMAILS_FROM_EMAIL: Optional[str] = None
+    EMAILS_FROM_NAME: Optional[str] = None
+
     class Config:
-        case_sensitive = True
         env_file = ".env"
+        case_sensitive = True
 
 @lru_cache()
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()
 
-# Database URL construction
 def get_database_url() -> str:
-    """Construct database URL from settings."""
+    """Create database URL based on settings."""
     settings = get_settings()
-    return f"postgresql://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_SERVER}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}" 
+    return f"postgresql://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}" 

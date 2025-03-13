@@ -1,92 +1,123 @@
-# College Admitted - Application Analysis Platform
+# CollegeAdmitted
 
-A modern platform for analyzing college applications using AI to provide insights and improve admission chances.
+CollegeAdmitted is an AI-powered platform that helps students navigate the college admissions process with personalized guidance, essay reviews, and interview preparation.
 
 ## Tech Stack
 
-### Frontend
-- React (TypeScript)
-- Material-UI for components
-- React Router for navigation
-- Jest and React Testing Library for tests
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend**: Python FastAPI
+- **Database**: PostgreSQL
+- **Hosting**: Render.com
 
-### Backend
-- Python 3.11+
-- FastAPI for API development
-- PostgreSQL for database
-- pytest for testing
-- Mistral LLM API for document processing
-
-### Infrastructure
-- AWS/GCP for hosting
-- GitHub Actions for CI/CD
-- Docker for containerization
-
-## Project Structure
-```
-college-admitted/
-├── frontend/               # React frontend application
-├── backend/               # FastAPI backend application
-├── docs/                 # Project documentation
-└── tests/               # Integration tests
-```
-
-## Getting Started
+## Development Setup
 
 ### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- PostgreSQL 15+
-- Docker (optional)
 
-### Development Setup
+- Node.js 18.17.0 or later
+- Python 3.11 or later
+- PostgreSQL 15 or later
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/collegeadmitted.git
-cd collegeadmitted
-```
+### Frontend Setup
 
-2. Set up the backend:
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
-pip install -r requirements.txt
-```
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
 
-3. Set up the frontend:
-```bash
-cd frontend
-npm install
-```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-4. Create necessary .env files (see .env.example in each directory)
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-5. Start development servers:
-```bash
-# Backend (from backend directory)
-uvicorn app.main:app --reload
+The frontend will be available at `http://localhost:3000`.
 
-# Frontend (from frontend directory)
-npm run dev
-```
+### Backend Setup
 
-## Environment Setup
-- Development: http://localhost:3000 (frontend) and http://localhost:8000 (backend)
-- UAT: [URL TBD]
-- Production: [URL TBD]
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
 
-## Contributing
-1. Create a new branch from `dev`
-2. Make your changes
-3. Write/update tests
-4. Create a pull request to `dev`
+2. Create a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-## Testing
-- Backend: `pytest` from the backend directory
-- Frontend: `npm test` from the frontend directory
-- Integration: `npm run test:integration` from the root directory
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+5. Start the development server:
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+
+The backend API will be available at `http://localhost:8000`.
+
+## Deployment
+
+The application is deployed using Render.com:
+
+- Frontend: Static site deployment from the `main` branch
+- Backend: Web service deployment from the `main` branch
+- Database: Managed PostgreSQL instance
+
+### Environment Variables
+
+Required environment variables for deployment:
+
+#### Frontend
+- `NODE_ENV`
+- `NEXT_PUBLIC_API_URL`
+
+#### Backend
+- `ENVIRONMENT`
+- `DATABASE_URL`
+- `SECRET_KEY`
+- `MISTRAL_API_KEY`
+
+## Git Workflow
+
+1. Create a feature branch from `develop`:
+   ```bash
+   git checkout develop
+   git pull
+   git checkout -b feature/your-feature-name
+   ```
+
+2. Make your changes and commit:
+   ```bash
+   git add .
+   git commit -m "feat: your feature description"
+   ```
+
+3. Push your branch and create a pull request to `develop`:
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+4. After review and approval, merge to `develop`.
+
+5. For releases, merge `develop` into `main`:
+   ```bash
+   git checkout main
+   git merge develop
+   git push origin main
+   ```
 
 ## License
-[License details]
+
+This project is proprietary and confidential.
