@@ -12,14 +12,28 @@ const ProfilePage: React.FC = () => {
     id: '',
     email: '',
     name: '',
+    first_name: '',
+    last_name: '',
+    avatar_url: '',
+    bio: '',
+    school: '',
+    graduation_year: null as number | null,
+    major: '',
   });
   const [formData, setFormData] = useState({
     name: '',
+    first_name: '',
+    last_name: '',
+    bio: '',
+    school: '',
+    graduation_year: '',
+    major: '',
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -34,8 +48,20 @@ const ProfilePage: React.FC = () => {
       try {
         const profile = await getUserProfile();
         setUserData(profile);
+        
+        // Check if this is a new user (profile not fully completed)
+        const isNewRegistration = !profile.school && !profile.graduation_year && !profile.major;
+        setIsNewUser(isNewRegistration);
+        
+        // Set form data from profile
         setFormData({
-          name: profile.name,
+          name: profile.name || '',
+          first_name: profile.first_name || '',
+          last_name: profile.last_name || '',
+          bio: profile.bio || '',
+          school: profile.school || '',
+          graduation_year: profile.graduation_year ? String(profile.graduation_year) : '',
+          major: profile.major || '',
         });
       } catch (error) {
         console.error('Failed to fetch profile:', error);
@@ -65,13 +91,29 @@ const ProfilePage: React.FC = () => {
     setSuccessMessage('');
     setIsUpdating(true);
     
+    const updateData = {
+      ...formData,
+      name: formData.name || `${formData.first_name} ${formData.last_name}`.trim(),
+      graduation_year: formData.graduation_year ? parseInt(formData.graduation_year, 10) : null,
+    };
+    
     try {
-      const updatedProfile = await updateUserProfile({
-        name: formData.name,
-      });
+      const updatedProfile = await updateUserProfile(updateData);
       
       setUserData(updatedProfile);
-      setSuccessMessage('Profile updated successfully!');
+      setIsNewUser(false);
+      setSuccessMessage(
+        isNewUser 
+          ? 'Registration completed successfully! Your profile is now set up.'
+          : 'Profile updated successfully!'
+      );
+      
+      // If this was the initial setup and we have school info, redirect to dashboard
+      if (isNewUser && updateData.school) {
+        setTimeout(() => {
+          router.push('/');
+        }, 1500);
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to update profile');
     } finally {
@@ -123,9 +165,13 @@ const ProfilePage: React.FC = () => {
       <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-8">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">Your Profile</h2>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {isNewUser ? 'Complete Your Profile' : 'Your Profile'}
+            </h2>
             <p className="mt-2 text-sm text-gray-600">
-              View and update your account information
+              {isNewUser 
+                ? 'Please provide additional information to complete your registration'
+                : 'View and update your account information'}
             </p>
           </div>
           
@@ -165,15 +211,63 @@ const ProfilePage: React.FC = () => {
               <p className="mt-1 text-sm text-gray-900">Email: {userData.email}</p>
             </div>
             
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <Input
-                id="name"
-                name="name"
+                id="first_name"
+                name="first_name"
                 type="text"
-                label="Full Name"
-                value={formData.name}
+                label="First Name"
+                value={formData.first_name}
                 onChange={handleChange}
                 required
+              />
+              
+              <Input
+                id="last_name"
+                name="last_name"
+                type="text"
+                label="Last Name"
+                value={formData.last_name}
+                onChange={handleChange}
+              />
+              
+              <Input
+                id="school"
+                name="school"
+                type="text"
+                label="School"
+                value={formData.school}
+                onChange={handleChange}
+                required={isNewUser}
+              />
+              
+              <Input
+                id="graduation_year"
+                name="graduation_year"
+                type="number"
+                label="Graduation Year"
+                value={formData.graduation_year}
+                onChange={handleChange}
+                required={isNewUser}
+              />
+              
+              <Input
+                id="major"
+                name="major"
+                type="text"
+                label="Major"
+                value={formData.major}
+                onChange={handleChange}
+                required={isNewUser}
+              />
+              
+              <Input
+                id="bio"
+                name="bio"
+                type="text"
+                label="Bio"
+                value={formData.bio}
+                onChange={handleChange}
               />
               
               <div className="mt-6">
@@ -182,19 +276,26 @@ const ProfilePage: React.FC = () => {
                   variant="primary"
                   disabled={isUpdating}
                 >
-                  {isUpdating ? 'Updating...' : 'Update Profile'}
+                  {isUpdating 
+                    ? 'Updating...' 
+                    : isNewUser 
+                      ? 'Complete Registration' 
+                      : 'Update Profile'
+                  }
                 </Button>
               </div>
             </form>
             
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <Button
-                variant="outline"
-                onClick={handleLogout}
-              >
-                Sign Out
-              </Button>
-            </div>
+            {!isNewUser && (
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <Button
+                  variant="outline"
+                  onClick={handleLogout}
+                >
+                  Sign Out
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

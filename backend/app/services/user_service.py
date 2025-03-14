@@ -24,44 +24,76 @@ class UserService:
     
     @staticmethod
     def get_user_by_id(user_id: str) -> Optional[dict]:
-        """Get user by ID from Supabase."""
+        """Get user profile by ID from Supabase."""
         try:
-            response = supabase.table('users').select('*').eq('id', user_id).single().execute()
+            # Use the profiles table which links to auth.users
+            response = supabase_client.from_('profiles').select('*').eq('id', user_id).single().execute()
             return response.data if response.data else None
         except Exception as e:
-            print(f"Error fetching user from Supabase: {e}")
+            print(f"Error fetching user profile from Supabase: {e}")
+            return None
+    
+    @staticmethod
+    def get_auth_user_by_id(user_id: str) -> Optional[dict]:
+        """Get user authentication data by ID from Supabase Auth."""
+        try:
+            # Get user from Supabase Auth
+            response = supabase_client.auth.admin.get_user_by_id(user_id)
+            
+            if not response.user:
+                return None
+                
+            return {
+                "id": response.user.id,
+                "email": response.user.email,
+                "user_metadata": response.user.user_metadata or {},
+                "app_metadata": response.user.app_metadata or {}
+            }
+        except Exception as e:
+            print(f"Error fetching auth user from Supabase: {e}")
             return None
             
     @staticmethod
     def get_user_by_email(email: str) -> Optional[dict]:
-        """Get user by email from Supabase."""
+        """Get user by email from Supabase Auth."""
         try:
-            response = supabase.table('users').select('*').eq('email', email).single().execute()
+            # First get the user from Supabase Auth
+            auth_response = supabase_client.auth.admin.list_users()
+            users = [user for user in auth_response.users if user.email == email]
+            
+            if not users:
+                return None
+                
+            # Then get their profile
+            user_id = users[0].id
+            response = supabase_client.from_('profiles').select('*').eq('id', user_id).single().execute()
             return response.data if response.data else None
         except Exception as e:
-            print(f"Error fetching user from Supabase: {e}")
+            print(f"Error fetching user from Supabase by email: {e}")
             return None
     
     @staticmethod
     def create_user(user_data: UserCreate) -> dict:
-        """Create a new user in Supabase Auth and store additional data in users table."""
-        # First check if user already exists
-        existing_user = UserService.get_user_by_email(user_data.email)
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User with this email already exists"
-            )
-        
+        """Create a new user in Supabase Auth."""
+        # First check if user already exists - this is handled by Supabase,
+        # but we can check first to provide a better error message
         try:
+            auth_response = supabase_client.auth.admin.list_users()
+            existing_user = [user for user in auth_response.users if user.email == user_data.email]
+            
+            if existing_user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="User with this email already exists"
+                )
+            
             # Create the user in Supabase Auth
-            auth_response = supabase.auth.sign_up({
+            auth_response = supabase_client.auth.admin.create_user({
                 "email": user_data.email,
                 "password": user_data.password,
-                "options": {
-                    "data": {
-                        "name": user_data.name
-                    }
+                "email_confirm": True,
+                "user_metadata": {
+                    "name": user_data.name
                 }
             })
             
@@ -71,33 +103,29 @@ class UserService:
                     detail="Failed to create user in Supabase Auth"
                 )
             
-            # Store additional user data in the users table
+            # The trigger will automatically create a profile entry
+            # But we may want to update it with additional data
             user_id = auth_response.user.id
-            user_data = {
-                "id": user_id,
-                "email": user_data.email,
-                "name": user_data.name,
-                "created_at": datetime.utcnow().isoformat(),
+            profile_data = {
+                "first_name": user_data.name.split()[0] if " " in user_data.name else user_data.name,
+                "last_name": " ".join(user_data.name.split()[1:]) if " " in user_data.name else "",
+                "display_name": user_data.name,
                 "updated_at": datetime.utcnow().isoformat()
             }
             
-            # Insert into users table
-            response = supabase.table('users').insert(user_data).execute()
+            # Update the profile
+            response = supabase_client.from_('profiles').update(profile_data).eq('id', user_id).execute()
             
             if not response.data:
-                # Delete the auth user if we couldn't create the profile
-                # This is a best effort cleanup - we don't throw if it fails
-                try:
-                    supabase.auth.admin.delete_user(user_id)
-                except:
-                    pass
-                
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to create user profile"
-                )
+                print("Warning: Created user but failed to update profile data")
             
-            return response.data[0]
+            # Return the user data
+            return {
+                "id": user_id,
+                "email": user_data.email,
+                "name": user_data.name
+            }
+            
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -108,7 +136,8 @@ class UserService:
     def authenticate_user(email: str, password: str) -> Optional[dict]:
         """Authenticate user with email and password using Supabase Auth."""
         try:
-            response = supabase.auth.sign_in_with_password({
+            # Sign in with Supabase Auth
+            response = supabase_client.auth.sign_in_with_password({
                 "email": email,
                 "password": password
             })
@@ -116,28 +145,85 @@ class UserService:
             if not response.user:
                 return None
             
-            # Get the user profile from our users table
-            user = UserService.get_user_by_id(response.user.id)
-            return user
-        except Exception:
+            # Get the user profile
+            user_id = response.user.id
+            profile = UserService.get_user_by_id(user_id)
+            
+            if not profile:
+                return {
+                    "id": user_id,
+                    "email": email,
+                    "name": response.user.user_metadata.get("name", "")
+                }
+                
+            # Return user data with profile information
+            return {
+                "id": user_id,
+                "email": email,
+                "name": profile.get("display_name") or response.user.user_metadata.get("name", ""),
+                "first_name": profile.get("first_name", ""),
+                "last_name": profile.get("last_name", ""),
+                "avatar_url": profile.get("avatar_url", ""),
+                "bio": profile.get("bio", ""),
+                "school": profile.get("school", ""),
+                "graduation_year": profile.get("graduation_year", None),
+                "major": profile.get("major", "")
+            }
+        except Exception as e:
+            print(f"Authentication error: {e}")
             return None
     
     @staticmethod
     def update_user_profile(user_id: str, data: dict) -> Optional[dict]:
-        """Update user profile in Supabase."""
+        """Update user profile in Supabase profiles table."""
         try:
-            data["updated_at"] = datetime.utcnow().isoformat()
-            response = supabase.table('users').update(data).eq('id', user_id).execute()
-            return response.data[0] if response.data else None
+            # Update the display_name in the profile data
+            profile_data = {**data}
+            if "name" in data:
+                profile_data["display_name"] = data["name"]
+                profile_data.pop("name", None)
+                
+                # Also update first_name and last_name if we have a full name
+                if " " in data["name"]:
+                    profile_data["first_name"] = data["name"].split()[0]
+                    profile_data["last_name"] = " ".join(data["name"].split()[1:])
+                else:
+                    profile_data["first_name"] = data["name"]
+                
+            profile_data["updated_at"] = datetime.utcnow().isoformat()
+            
+            # Update the profiles table
+            response = supabase_client.from_('profiles').update(profile_data).eq('id', user_id).execute()
+            
+            if not response.data:
+                return None
+                
+            updated_profile = response.data[0]
+            
+            # Get the user's email from Supabase Auth
+            auth_response = supabase_client.auth.admin.get_user_by_id(user_id)
+            email = auth_response.user.email if auth_response.user else ""
+            
+            # Return combined user data
+            return {
+                "id": user_id,
+                "email": email,
+                "name": updated_profile.get("display_name", ""),
+                "first_name": updated_profile.get("first_name", ""),
+                "last_name": updated_profile.get("last_name", ""),
+                "avatar_url": updated_profile.get("avatar_url", ""),
+                "bio": updated_profile.get("bio", ""),
+                "school": updated_profile.get("school", ""),
+                "graduation_year": updated_profile.get("graduation_year", None),
+                "major": updated_profile.get("major", "")
+            }
         except Exception as e:
-            print(f"Error updating user in Supabase: {e}")
+            print(f"Error updating user profile in Supabase: {e}")
             return None
             
     @staticmethod
     def create_access_token_for_user(user_id: str) -> str:
         """Create JWT access token for a user."""
-        # You might want to use Supabase's JWT instead
-        # This is a simple implementation for backward compatibility
         to_encode = {
             "sub": str(user_id),
             "exp": datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

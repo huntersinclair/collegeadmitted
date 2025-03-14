@@ -79,18 +79,14 @@ const RegisterPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const response = await registerUser({
+      await registerUser({
         name: formData.name,
         email: formData.email,
         password: formData.password,
       });
       
-      // Redirect to profile page or verification page if email verification is required
-      if (response.token) {
-        router.push('/profile');
-      } else {
-        router.push('/login?message=Please+check+your+email+to+verify+your+account');
-      }
+      // Always redirect to profile page after registration
+      router.push('/profile');
     } catch (error) {
       setServerError(error instanceof Error ? error.message : 'Registration failed');
     } finally {

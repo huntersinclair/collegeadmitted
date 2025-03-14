@@ -25,6 +25,24 @@ export interface UserProfile {
   id: string;
   email: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string;
+  bio?: string;
+  school?: string;
+  graduation_year?: number | null;
+  major?: string;
+}
+
+export interface ProfileUpdateData {
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+  bio?: string;
+  school?: string;
+  graduation_year?: number | null;
+  major?: string;
+  avatar_url?: string;
 }
 
 /**
@@ -84,36 +102,112 @@ export async function loginUser(loginData: UserLoginData): Promise<TokenResponse
  * Get the current user's profile
  */
 export async function getUserProfile(): Promise<UserProfile> {
-  const { data: { user }, error } = await supabase.auth.getUser();
+  // First get user data from Supabase Auth
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  if (error || !user) {
+  if (authError || !user) {
     throw new Error('Failed to fetch user profile');
   }
 
+  // Then get the profile data from the profiles table
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError) {
+    console.warn('Error fetching profile details:', profileError);
+  }
+
+  // Combine Auth user and profile data
   return {
     id: user.id,
     email: user.email || '',
-    name: user.user_metadata?.name || '',
+    name: profile?.display_name || user.user_metadata?.name || '',
+    first_name: profile?.first_name || '',
+    last_name: profile?.last_name || '',
+    avatar_url: profile?.avatar_url || '',
+    bio: profile?.bio || '',
+    school: profile?.school || '',
+    graduation_year: profile?.graduation_year || null,
+    major: profile?.major || '',
   };
 }
 
 /**
  * Update the current user's profile
  */
-export async function updateUserProfile(userData: { name?: string }): Promise<UserProfile> {
-  const { data: { user }, error } = await supabase.auth.updateUser({
-    data: userData,
-  });
-
-  if (error || !user) {
-    throw new Error('Failed to update user profile');
+export async function updateUserProfile(userData: ProfileUpdateData): Promise<UserProfile> {
+  // Get current user
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  
+  if (userError || !user) {
+    throw new Error('User not authenticated');
   }
-
-  return {
-    id: user.id,
-    email: user.email || '',
-    name: user.user_metadata?.name || '',
-  };
+  
+  // Update name in Supabase Auth if provided
+  if (userData.name) {
+    const { error: updateAuthError } = await supabase.auth.updateUser({
+      data: { name: userData.name }
+    });
+    
+    if (updateAuthError) {
+      console.warn('Error updating auth user metadata:', updateAuthError);
+    }
+  }
+  
+  // Prepare data for profiles table
+  const profileData: Record<string, string | number | null> = {};
+  
+  if (userData.name) {
+    profileData.display_name = userData.name;
+  }
+  
+  if (userData.first_name) {
+    profileData.first_name = userData.first_name;
+  }
+  
+  if (userData.last_name) {
+    profileData.last_name = userData.last_name;
+  }
+  
+  if (userData.bio !== undefined) {
+    profileData.bio = userData.bio;
+  }
+  
+  if (userData.school !== undefined) {
+    profileData.school = userData.school;
+  }
+  
+  if (userData.graduation_year !== undefined) {
+    profileData.graduation_year = userData.graduation_year;
+  }
+  
+  if (userData.major !== undefined) {
+    profileData.major = userData.major;
+  }
+  
+  if (userData.avatar_url) {
+    profileData.avatar_url = userData.avatar_url;
+  }
+  
+  // Only update profiles table if we have data to update
+  if (Object.keys(profileData).length > 0) {
+    profileData.updated_at = new Date().toISOString();
+    
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update(profileData)
+      .eq('id', user.id);
+    
+    if (profileError) {
+      throw new Error(`Failed to update profile: ${profileError.message}`);
+    }
+  }
+  
+  // Return the updated profile
+  return await getUserProfile();
 }
 
 /**
