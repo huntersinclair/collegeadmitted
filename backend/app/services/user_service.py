@@ -11,7 +11,7 @@ from app.models.user import User, UserAuth
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.config import get_settings
-from app.core.supabase import supabase
+from app.core.supabase import supabase_client
 
 settings = get_settings()
 
