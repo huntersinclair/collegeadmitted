@@ -3,6 +3,8 @@ name: Deploy Supabase Migrations
 on:
   push:
     branches:
+      - develop
+      - uat
       - main
     paths:
       - 'supabase/migrations/**'
@@ -29,4 +31,15 @@ jobs:
       - name: Deploy migrations to Supabase
         run: |
           supabase link --project-ref $SUPABASE_PROJECT_ID
-          supabase db push 
+          supabase db push
+          
+      - name: Trigger Render Deploy
+        if: success()
+        run: |
+          # Only trigger Render deploy if migrations were actually applied
+          if [ "${{ github.event_name }}" == "push" ] && [ -n "$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -E 'supabase/migrations/')" ]; then
+            curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+            echo "Triggered Render deployment after successful DB migration"
+          else
+            echo "No migration changes detected, skipping Render deployment trigger"
+          fi 
