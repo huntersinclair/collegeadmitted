@@ -47,7 +47,20 @@ const ProfilePage: React.FC = () => {
       
       try {
         const profile = await getUserProfile();
-        setUserData(profile);
+        
+        // Transform the profile to ensure all fields have values
+        setUserData({
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          first_name: profile.first_name || '',
+          last_name: profile.last_name || '',
+          avatar_url: profile.avatar_url || '',
+          bio: profile.bio || '',
+          school: profile.school || '',
+          graduation_year: profile.graduation_year || null,
+          major: profile.major || '',
+        });
         
         // Check if this is a new user (profile not fully completed)
         const isNewRegistration = !profile.school && !profile.graduation_year && !profile.major;
@@ -100,7 +113,20 @@ const ProfilePage: React.FC = () => {
     try {
       const updatedProfile = await updateUserProfile(updateData);
       
-      setUserData(updatedProfile);
+      // Transform the profile to ensure all fields have values
+      setUserData({
+        id: updatedProfile.id,
+        email: updatedProfile.email,
+        name: updatedProfile.name,
+        first_name: updatedProfile.first_name || '',
+        last_name: updatedProfile.last_name || '',
+        avatar_url: updatedProfile.avatar_url || '',
+        bio: updatedProfile.bio || '',
+        school: updatedProfile.school || '',
+        graduation_year: updatedProfile.graduation_year || null,
+        major: updatedProfile.major || '',
+      });
+      
       setIsNewUser(false);
       setSuccessMessage(
         isNewUser 
