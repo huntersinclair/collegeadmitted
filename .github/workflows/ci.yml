@@ -64,40 +64,4 @@ jobs:
       uses: codecov/codecov-action@v3
       with:
         file: ./frontend/coverage/coverage-final.json
-      continue-on-error: true
-
-  build:
-    needs: [test-backend, test-frontend]
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-west-2
-        
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
-      
-    - name: Build and push backend image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        cd backend
-        docker build -t $ECR_REGISTRY/collegeadmitted-backend:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/collegeadmitted-backend:$IMAGE_TAG
-        
-    - name: Build and push frontend image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        cd frontend
-        docker build -t $ECR_REGISTRY/collegeadmitted-frontend:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/collegeadmitted-frontend:$IMAGE_TAG 
+      continue-on-error: true 

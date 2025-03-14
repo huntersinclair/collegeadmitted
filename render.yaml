@@ -13,6 +13,12 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: https://api.collegeadmitted.app/api
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
 
   # Backend - Web Service
   - type: web
@@ -24,12 +30,6 @@ services:
     envVars:
       - key: ENVIRONMENT
         value: production
-      - key: POSTGRES_USER
-        sync: false
-      - key: POSTGRES_PASSWORD
-        sync: false
-      - key: POSTGRES_DB
-        sync: false
       - key: SECRET_KEY
         sync: false
       - key: MISTRAL_API_KEY
@@ -38,6 +38,14 @@ services:
         fromDatabase:
           name: collegeadmitted-db
           property: connectionString
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://collegeadmitted.app
 
 databases:
   - name: collegeadmitted-db
