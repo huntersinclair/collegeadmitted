@@ -22,7 +22,7 @@ ENV NEXT_TELEMETRY_DISABLED 1
 
 RUN npm run build
 
-# Production image, copy all the files and run next
+# Production image, copy all the files and run static server
 FROM base AS runner
 WORKDIR /app
 
@@ -32,15 +32,11 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
+# Install serve to host static site
+RUN npm install -g serve
 
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Automatically leverage output traces to reduce image size
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy static output directory
+COPY --from=builder --chown=nextjs:nodejs /app/out ./out
 
 USER nextjs
 
@@ -50,4 +46,5 @@ ENV PORT 3000
 # set hostname to localhost
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"] 
+# Use serve to host the static site on 0.0.0.0 port 3000
+CMD ["serve", "-s", "out", "-l", "3000"] 
