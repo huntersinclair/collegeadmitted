@@ -1,5 +1,5 @@
 import React from 'react';
-import { getSocialLoginUrl } from '../api/auth';
+import { signInWithGoogle, signInWithFacebook } from '../api/auth';
 
 interface SocialButtonProps {
   provider: 'google' | 'facebook';
@@ -7,8 +7,16 @@ interface SocialButtonProps {
 }
 
 const SocialButton: React.FC<SocialButtonProps> = ({ provider, className = '' }) => {
-  const handleClick = () => {
-    window.location.href = getSocialLoginUrl(provider);
+  const handleClick = async () => {
+    try {
+      if (provider === 'google') {
+        await signInWithGoogle();
+      } else {
+        await signInWithFacebook();
+      }
+    } catch (error) {
+      console.error(`Error signing in with ${provider}:`, error);
+    }
   };
 
   const getButtonStyle = () => {

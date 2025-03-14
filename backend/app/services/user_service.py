@@ -1,92 +1,149 @@
+import uuid
 from typing import Optional, List, Dict, Any, Union
 from uuid import UUID
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
+from jose import jwt, JWTError
+from passlib.context import CryptContext
+from datetime import datetime, timedelta
 
 from app.models.user import User, UserAuth
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import get_password_hash, verify_password, create_access_token
+from app.core.config import get_settings
+from app.core.supabase import supabase
+
+settings = get_settings()
+
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class UserService:
-    """Service for handling user operations."""
+    """Service for handling user operations using Supabase."""
     
     @staticmethod
-    def create_user(db: Session, user_data: UserCreate) -> User:
-        """Create a new user with local authentication."""
-        # Check if user with this email already exists
-        db_user = db.query(User).filter(User.email == user_data.email).first()
-        if db_user:
+    def get_user_by_id(user_id: str) -> Optional[dict]:
+        """Get user by ID from Supabase."""
+        try:
+            response = supabase.table('users').select('*').eq('id', user_id).single().execute()
+            return response.data if response.data else None
+        except Exception as e:
+            print(f"Error fetching user from Supabase: {e}")
+            return None
+            
+    @staticmethod
+    def get_user_by_email(email: str) -> Optional[dict]:
+        """Get user by email from Supabase."""
+        try:
+            response = supabase.table('users').select('*').eq('email', email).single().execute()
+            return response.data if response.data else None
+        except Exception as e:
+            print(f"Error fetching user from Supabase: {e}")
+            return None
+    
+    @staticmethod
+    def create_user(user_data: UserCreate) -> dict:
+        """Create a new user in Supabase Auth and store additional data in users table."""
+        # First check if user already exists
+        existing_user = UserService.get_user_by_email(user_data.email)
+        if existing_user:
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Email already registered"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User with this email already exists"
             )
         
-        # Create new user
-        user = User(email=user_data.email, name=user_data.name)
-        db.add(user)
-        db.flush()  # Flush to get user ID
-        
-        # Create local auth method
-        hashed_password = get_password_hash(user_data.password)
-        auth_method = UserAuth(
-            user_id=user.id,
-            auth_type="local",
-            auth_identifier=user_data.email,
-            auth_secret=hashed_password
-        )
-        db.add(auth_method)
-        db.commit()
-        db.refresh(user)
-        
-        return user
-
-    @staticmethod
-    def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
-        """Authenticate a user with email and password."""
-        # Find user by email
-        user = db.query(User).filter(User.email == email).first()
-        if not user:
-            return None
-        
-        # Find local auth method
-        auth_method = db.query(UserAuth).filter(
-            UserAuth.user_id == user.id,
-            UserAuth.auth_type == "local"
-        ).first()
-        
-        if not auth_method or not verify_password(password, auth_method.auth_secret):
-            return None
-        
-        return user
-    
-    @staticmethod
-    def get_user_by_id(db: Session, user_id: UUID) -> Optional[User]:
-        """Get user by ID."""
-        return db.query(User).filter(User.id == user_id).first()
-    
-    @staticmethod
-    def get_user_by_email(db: Session, email: str) -> Optional[User]:
-        """Get user by email."""
-        return db.query(User).filter(User.email == email).first()
-    
-    @staticmethod
-    def update_user(db: Session, user_id: UUID, user_data: UserUpdate) -> User:
-        """Update user profile."""
-        user = UserService.get_user_by_id(db, user_id)
-        if not user:
+        try:
+            # Create the user in Supabase Auth
+            auth_response = supabase.auth.sign_up({
+                "email": user_data.email,
+                "password": user_data.password,
+                "options": {
+                    "data": {
+                        "name": user_data.name
+                    }
+                }
+            })
+            
+            if not auth_response.user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to create user in Supabase Auth"
+                )
+            
+            # Store additional user data in the users table
+            user_id = auth_response.user.id
+            user_data = {
+                "id": user_id,
+                "email": user_data.email,
+                "name": user_data.name,
+                "created_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.utcnow().isoformat()
+            }
+            
+            # Insert into users table
+            response = supabase.table('users').insert(user_data).execute()
+            
+            if not response.data:
+                # Delete the auth user if we couldn't create the profile
+                # This is a best effort cleanup - we don't throw if it fails
+                try:
+                    supabase.auth.admin.delete_user(user_id)
+                except:
+                    pass
+                
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to create user profile"
+                )
+            
+            return response.data[0]
+        except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error creating user: {str(e)}"
             )
+    
+    @staticmethod
+    def authenticate_user(email: str, password: str) -> Optional[dict]:
+        """Authenticate user with email and password using Supabase Auth."""
+        try:
+            response = supabase.auth.sign_in_with_password({
+                "email": email,
+                "password": password
+            })
+            
+            if not response.user:
+                return None
+            
+            # Get the user profile from our users table
+            user = UserService.get_user_by_id(response.user.id)
+            return user
+        except Exception:
+            return None
+    
+    @staticmethod
+    def update_user_profile(user_id: str, data: dict) -> Optional[dict]:
+        """Update user profile in Supabase."""
+        try:
+            data["updated_at"] = datetime.utcnow().isoformat()
+            response = supabase.table('users').update(data).eq('id', user_id).execute()
+            return response.data[0] if response.data else None
+        except Exception as e:
+            print(f"Error updating user in Supabase: {e}")
+            return None
+            
+    @staticmethod
+    def create_access_token_for_user(user_id: str) -> str:
+        """Create JWT access token for a user."""
+        # You might want to use Supabase's JWT instead
+        # This is a simple implementation for backward compatibility
+        to_encode = {
+            "sub": str(user_id),
+            "exp": datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        }
         
-        # Update user fields
-        for key, value in user_data.dict(exclude_unset=True).items():
-            setattr(user, key, value)
-        
-        db.commit()
-        db.refresh(user)
-        return user
+        return jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
     
     @staticmethod
     def get_or_create_social_user(
@@ -105,10 +162,10 @@ class UserService:
         
         if auth_method:
             # Return existing user
-            return UserService.get_user_by_id(db, auth_method.user_id)
+            return UserService.get_user_by_id(auth_method.user_id)
         
         # Check if user with this email exists
-        user = UserService.get_user_by_email(db, email)
+        user = UserService.get_user_by_email(email)
         
         if not user:
             # Create new user
@@ -130,6 +187,19 @@ class UserService:
         return user
     
     @staticmethod
-    def create_access_token_for_user(user_id: UUID) -> str:
-        """Create JWT access token for a user."""
-        return create_access_token(subject=user_id) 
+    def update_user(db: Session, user_id: UUID, user_data: UserUpdate) -> User:
+        """Update user profile."""
+        user = UserService.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Update user fields
+        for key, value in user_data.dict(exclude_unset=True).items():
+            setattr(user, key, value)
+        
+        db.commit()
+        db.refresh(user)
+        return user 

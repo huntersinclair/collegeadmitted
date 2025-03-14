@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import SocialButton from '../components/SocialButton';
 import LoginSearchParams from '../components/LoginSearchParams';
-import { loginUser, storeAuthToken } from '../api/auth';
+import { loginUser, getSession } from '../api/auth';
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
@@ -18,6 +18,18 @@ const LoginPage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState('');
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await getSession();
+      if (data.session) {
+        router.push('/profile');
+      }
+    };
+    
+    checkSession();
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -56,13 +68,10 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const response = await loginUser({
+      await loginUser({
         email: formData.email,
         password: formData.password,
       });
-      
-      // Store token
-      storeAuthToken(response.token);
       
       // Redirect to profile page
       router.push('/profile');

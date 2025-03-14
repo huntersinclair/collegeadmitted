@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import SocialButton from '../components/SocialButton';
-import { registerUser, storeAuthToken } from '../api/auth';
+import { registerUser, getSession } from '../api/auth';
 
 const RegisterPage: React.FC = () => {
   const router = useRouter();
@@ -19,6 +19,18 @@ const RegisterPage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState('');
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await getSession();
+      if (data.session) {
+        router.push('/profile');
+      }
+    };
+    
+    checkSession();
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -73,11 +85,12 @@ const RegisterPage: React.FC = () => {
         password: formData.password,
       });
       
-      // Store token
-      storeAuthToken(response.token);
-      
-      // Redirect to profile page
-      router.push('/profile');
+      // Redirect to profile page or verification page if email verification is required
+      if (response.token) {
+        router.push('/profile');
+      } else {
+        router.push('/login?message=Please+check+your+email+to+verify+your+account');
+      }
     } catch (error) {
       setServerError(error instanceof Error ? error.message : 'Registration failed');
     } finally {

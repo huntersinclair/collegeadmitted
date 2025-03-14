@@ -1,6 +1,7 @@
 /**
- * Authentication API client for interacting with the backend auth endpoints
+ * Authentication API client using Supabase
  */
+import { supabase } from '@/utils/supabase';
 
 // Types
 export interface UserRegisterData {
@@ -26,121 +27,141 @@ export interface UserProfile {
   name: string;
 }
 
-// API URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-
 /**
  * Register a new user with email and password
  */
 export async function registerUser(userData: UserRegisterData): Promise<TokenResponse> {
-  const response = await fetch(`${API_URL}/registration/local`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const { data, error } = await supabase.auth.signUp({
+    email: userData.email,
+    password: userData.password,
+    options: {
+      data: {
+        name: userData.name,
+      },
     },
-    body: JSON.stringify(userData),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || 'Registration failed');
+  if (error) {
+    throw new Error(error.message || 'Registration failed');
   }
 
-  return response.json();
+  if (!data.user || !data.session) {
+    throw new Error('Registration successful, but no session created. Please check your email for confirmation.');
+  }
+
+  return {
+    user_id: data.user.id,
+    token: data.session.access_token,
+    token_type: 'bearer',
+  };
 }
 
 /**
  * Login a user with email and password
  */
 export async function loginUser(loginData: UserLoginData): Promise<TokenResponse> {
-  const response = await fetch(`${API_URL}/login/local`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(loginData),
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: loginData.email,
+    password: loginData.password,
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || 'Login failed');
+  if (error) {
+    throw new Error(error.message || 'Login failed');
   }
 
-  return response.json();
+  if (!data.user || !data.session) {
+    throw new Error('Login failed. Please try again.');
+  }
+
+  return {
+    user_id: data.user.id,
+    token: data.session.access_token,
+    token_type: 'bearer',
+  };
 }
 
 /**
  * Get the current user's profile
  */
-export async function getUserProfile(token: string): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/user-profile`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
+export async function getUserProfile(): Promise<UserProfile> {
+  const { data: { user }, error } = await supabase.auth.getUser();
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || 'Failed to fetch user profile');
+  if (error || !user) {
+    throw new Error('Failed to fetch user profile');
   }
 
-  return response.json();
+  return {
+    id: user.id,
+    email: user.email || '',
+    name: user.user_metadata?.name || '',
+  };
 }
 
 /**
  * Update the current user's profile
  */
-export async function updateUserProfile(token: string, userData: { name?: string }): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/user-profile`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(userData),
+export async function updateUserProfile(userData: { name?: string }): Promise<UserProfile> {
+  const { data: { user }, error } = await supabase.auth.updateUser({
+    data: userData,
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || 'Failed to update user profile');
+  if (error || !user) {
+    throw new Error('Failed to update user profile');
   }
 
-  return response.json();
+  return {
+    id: user.id,
+    email: user.email || '',
+    name: user.user_metadata?.name || '',
+  };
 }
 
 /**
- * Get the URL for social login
+ * Sign in with Google
  */
-export function getSocialLoginUrl(provider: 'google' | 'facebook'): string {
-  return `${API_URL}/login/${provider}`;
-}
+export async function signInWithGoogle(): Promise<void> {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/login/success`,
+    },
+  });
 
-/**
- * Store authentication token in localStorage
- */
-export function storeAuthToken(token: string): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('auth_token', token);
+  if (error) {
+    throw new Error(error.message || 'Google sign in failed');
   }
 }
 
 /**
- * Get authentication token from localStorage
+ * Sign in with Facebook
  */
-export function getAuthToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('auth_token');
+export async function signInWithFacebook(): Promise<void> {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'facebook',
+    options: {
+      redirectTo: `${window.location.origin}/login/success`,
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Facebook sign in failed');
   }
-  return null;
 }
 
 /**
- * Remove authentication token from localStorage
+ * Sign out the current user
  */
-export function removeAuthToken(): void {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('auth_token');
+export async function signOut(): Promise<void> {
+  const { error } = await supabase.auth.signOut();
+  
+  if (error) {
+    throw new Error(error.message || 'Sign out failed');
   }
+}
+
+/**
+ * Get current session
+ */
+export async function getSession() {
+  return await supabase.auth.getSession();
 } 

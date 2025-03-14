@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Input from '../components/Input';
 import Button from '../components/Button';
-import { getUserProfile, updateUserProfile, getAuthToken, removeAuthToken } from '../api/auth';
+import { getUserProfile, updateUserProfile, signOut, getSession } from '../api/auth';
 
 const ProfilePage: React.FC = () => {
   const router = useRouter();
@@ -23,16 +23,16 @@ const ProfilePage: React.FC = () => {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const token = getAuthToken();
+      const { data } = await getSession();
       
-      if (!token) {
-        // Redirect to login if no token
+      if (!data.session) {
+        // Redirect to login if no session
         router.push('/login');
         return;
       }
       
       try {
-        const profile = await getUserProfile(token);
+        const profile = await getUserProfile();
         setUserData(profile);
         setFormData({
           name: profile.name,
@@ -43,7 +43,7 @@ const ProfilePage: React.FC = () => {
         
         // If unauthorized, redirect to login
         if (error instanceof Error && error.message.includes('401')) {
-          removeAuthToken();
+          await signOut();
           router.push('/login');
         }
       } finally {
@@ -65,14 +65,8 @@ const ProfilePage: React.FC = () => {
     setSuccessMessage('');
     setIsUpdating(true);
     
-    const token = getAuthToken();
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-    
     try {
-      const updatedProfile = await updateUserProfile(token, {
+      const updatedProfile = await updateUserProfile({
         name: formData.name,
       });
       
@@ -85,9 +79,13 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
-    removeAuthToken();
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.push('/login');
+    } catch (_) {
+      setError('Failed to sign out. Please try again.');
+    }
   };
 
   if (isLoading) {
