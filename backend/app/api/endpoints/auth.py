@@ -4,10 +4,11 @@ from sqlalchemy.orm import Session
 from typing import Any
 
 from app.db.session import get_db
-from app.schemas.user import UserCreate, UserLogin, TokenResponse, UserResponse
+from app.schemas.user import UserCreate, UserLoginRequest, TokenResponse, UserResponse
 from app.services.user_service import UserService
 from app.services.social_auth_service import SocialAuthService
 from app.core.config import get_settings
+from app.core.security import create_access_token
 
 settings = get_settings()
 
@@ -37,14 +38,14 @@ def register_user(
 
 @router.post("/login/local", response_model=TokenResponse)
 def login_user(
-    login_data: UserLogin,
+    login_data: UserLoginRequest,
     db: Session = Depends(get_db)
 ) -> Any:
     """
     Authenticate a user with email and password.
     """
-    # Authenticate user
-    user = UserService.authenticate_user(db, login_data.email, login_data.password)
+    # Authenticate user using Supabase
+    user = UserService.authenticate_user(login_data.email, login_data.password)
     
     if not user:
         raise HTTPException(
@@ -54,10 +55,10 @@ def login_user(
         )
     
     # Generate access token
-    token = UserService.create_access_token_for_user(user.id)
+    token = create_access_token(data={"sub": user["id"]})
     
     return {
-        "user_id": user.id,
+        "user_id": user["id"],
         "token": token,
         "token_type": "bearer"
     }
