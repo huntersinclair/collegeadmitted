@@ -83,7 +83,7 @@ const ProfilePage: React.FC = () => {
     try {
       await signOut();
       router.push('/login');
-    } catch (_) {
+    } catch {
       setError('Failed to sign out. Please try again.');
     }
   };

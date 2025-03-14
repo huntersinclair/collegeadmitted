@@ -2,27 +2,33 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { storeAuthToken } from '../api/auth';
+import { supabase } from '@/utils/supabase';
 
 export default function SuccessSearchParams() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Get token from URL parameters
-    const token = searchParams.get('token');
-    const userId = searchParams.get('user_id');
-    
-    if (token && userId) {
-      // Store token in localStorage
-      storeAuthToken(token);
+    const handleAuthRedirect = async () => {
+      // Check if we have a session
+      const { data, error } = await supabase.auth.getSession();
       
-      // Redirect to profile page
-      router.push('/profile');
-    } else {
-      // If no token, redirect to login page with error
-      router.push('/login?error=social_login_failed');
-    }
+      if (error) {
+        console.error('Error getting session:', error.message);
+        router.push('/login?error=social_login_failed');
+        return;
+      }
+      
+      if (data.session) {
+        // Session exists, redirect to profile
+        router.push('/profile');
+      } else {
+        // No session, redirect to login
+        router.push('/login?error=social_login_failed');
+      }
+    };
+    
+    handleAuthRedirect();
   }, [router, searchParams]);
 
   return null;

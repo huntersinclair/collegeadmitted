@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     # Security settings
     SECRET_KEY: str = os.getenv("SECRET_KEY", "development_secret_key")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
+    JWT_SECRET: str = os.getenv("JWT_SECRET", "development_jwt_secret")
+    JWT_ALGORITHM: str = "HS256"
+    
+    # Supabase settings
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
     
     # CORS settings
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
