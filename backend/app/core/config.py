@@ -14,22 +14,15 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api"
     PROJECT_NAME: str = "College Admitted"
     
-    # Database settings
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
-    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
-    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "collegeadmitted")
+    # Supabase settings
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
     
     # Security settings
     SECRET_KEY: str = os.getenv("SECRET_KEY", "development_secret_key")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
     JWT_SECRET: str = os.getenv("JWT_SECRET", "development_jwt_secret")
     JWT_ALGORITHM: str = "HS256"
-    
-    # Supabase settings
-    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
-    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
     
     # CORS settings
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
@@ -57,9 +50,4 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    return Settings()
-
-def get_database_url() -> str:
-    """Create database URL based on settings."""
-    settings = get_settings()
-    return f"postgresql://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}" 
+    return Settings() 
