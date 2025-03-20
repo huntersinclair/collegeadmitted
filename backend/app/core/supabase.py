@@ -2,6 +2,7 @@ import os
 import requests
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
+from supabase import create_client, Client
 
 # Load environment variables
 load_dotenv()
@@ -12,6 +13,16 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise ValueError("Supabase URL and key must be set in environment variables")
+
+# Initialize Supabase client
+_supabase_client: Optional[Client] = None
+
+def get_supabase_client() -> Client:
+    """Get or create a Supabase client instance."""
+    global _supabase_client
+    if _supabase_client is None:
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    return _supabase_client
 
 class SupabaseClient:
     def __init__(self, url: str, key: str):

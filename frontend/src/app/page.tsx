@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
   return (
@@ -10,6 +13,19 @@ export default function Home() {
         <p className="text-2xl text-center mb-12">
           Your AI-powered guide to college admissions success
         </p>
+
+        <div className="flex justify-center gap-4 mb-12">
+          <Link href="/applications/new">
+            <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+              Create New Application
+            </Button>
+          </Link>
+          <Link href="/applications">
+            <Button size="lg" variant="outline">
+              View Applications
+            </Button>
+          </Link>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-32">
           <div className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100">

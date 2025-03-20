@@ -1,5 +1,6 @@
 import os
-from typing import Optional
+from typing import Optional, List, Union, Any
+from pydantic import AnyHttpUrl, PostgresDsn, validator
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 from functools import lru_cache
@@ -11,16 +12,17 @@ class Settings(BaseSettings):
     """Application settings."""
     
     # API Settings
-    API_V1_STR: str = "/api"
-    PROJECT_NAME: str = "College Admitted"
+    API_V1_STR: str = "/api/v1"
+    PROJECT_NAME: str = "CollegeAdmitted"
     
     # Supabase settings
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
     SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
+    SUPABASE_JWT_SECRET: str = os.getenv("SUPABASE_JWT_SECRET", "")
     
     # Security settings
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "development_secret_key")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     JWT_SECRET: str = os.getenv("JWT_SECRET", "development_jwt_secret")
     JWT_ALGORITHM: str = "HS256"
     
@@ -42,6 +44,20 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = None
     EMAILS_FROM_EMAIL: Optional[str] = None
     EMAILS_FROM_NAME: Optional[str] = None
+    
+    # Mistral API Configuration
+    MISTRAL_API_KEY: str = os.getenv("MISTRAL_API_KEY", "")
+    
+    # CORS Configuration
+    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    
+    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",")]
+        elif isinstance(v, (list, str)):
+            return v
+        raise ValueError(v)
 
     class Config:
         env_file = ".env"
