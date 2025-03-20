@@ -90,6 +90,7 @@ const MarkdownContainer = styled(Box)(({ theme }) => ({
 
 interface ResumeStepProps {
   application: Application;
+  onSave: (data: Partial<Application>) => Promise<void>;
 }
 
 interface ResumeDocument {
@@ -99,7 +100,7 @@ interface ResumeDocument {
   created_at: string;
 }
 
-export function ResumeStep({ application }: ResumeStepProps) {
+export function ResumeStep({ application, onSave }: ResumeStepProps) {
   const { supabase } = useSupabase();
   const [resumeDocument, setResumeDocument] = useState<ResumeDocument | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -156,6 +157,12 @@ export function ResumeStep({ application }: ResumeStepProps) {
       setResumeDocument(data);
       setEditedContent(data.content);
       setError(null);
+
+      // Update application status
+      await onSave({
+        status: 'in_progress',
+        resume_text: text
+      });
     } catch (error) {
       console.error('Error saving resume:', error);
       setError('Failed to save resume');

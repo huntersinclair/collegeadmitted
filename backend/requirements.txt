@@ -20,4 +20,5 @@ python-multipart==0.0.9
 pytest==8.0.0
 httpx==0.25.2  # Specific version for mistralai compatibility
 mistralai==0.0.12  # For Mistral LLM API integration
-requests==2.31.0 
+requests==2.31.0
+supabase-py==2.3.4  # For Supabase client 
