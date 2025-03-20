@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  output: 'export',
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000', 'localhost:3001']
