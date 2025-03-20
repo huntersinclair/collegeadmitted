@@ -1,4 +1,4 @@
-import { supabase } from '@/library/supabaseClient';
+import { supabase } from '@/utils/supabaseClient';
 import {
   Application,
   ApplicationCourse,
