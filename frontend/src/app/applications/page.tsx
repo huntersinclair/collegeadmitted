@@ -18,7 +18,7 @@ import { Loader2 } from 'lucide-react';
 
 interface ApplicationWithRelations extends Application {
   universities?: University;
-  university_programs?: UniversityProgram;
+  university_majors?: UniversityProgram;
 }
 
 export default function ApplicationsPage() {
@@ -114,7 +114,7 @@ export default function ApplicationsPage() {
                       {application.universities?.name || 'University Not Selected'}
                     </CardTitle>
                     <CardDescription>
-                      {application.university_programs?.name || 'Program Not Selected'}
+                      {application.university_majors?.choice_label || 'Program Not Selected'}
                     </CardDescription>
                   </div>
                   <Badge className={getStatusColor(application.status)}>

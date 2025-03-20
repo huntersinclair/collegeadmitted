@@ -9,7 +9,8 @@ import {
   ApplicationAdditionalInfo,
   ApplicationFile,
   University,
-  UniversityProgram
+  UniversityProgram,
+  College
 } from '@/types/application';
 
 export class ApplicationService {
@@ -25,10 +26,10 @@ export class ApplicationService {
 
   static async getUniversityPrograms(universityId: string): Promise<UniversityProgram[]> {
     const { data, error } = await supabase
-      .from('university_programs')
+      .from('university_majors')
       .select('*')
       .eq('university_id', universityId)
-      .order('name');
+      .order('choice_label');
     
     if (error) throw error;
     return data;
@@ -37,7 +38,11 @@ export class ApplicationService {
   static async getUserApplications(): Promise<Application[]> {
     const { data, error } = await supabase
       .from('applications')
-      .select('*, universities(*), university_programs(*)')
+      .select(`
+        *,
+        universities(*),
+        university_majors!applications_program_id_fkey(*)
+      `)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -47,7 +52,11 @@ export class ApplicationService {
   static async getApplication(id: string): Promise<Application> {
     const { data, error } = await supabase
       .from('applications')
-      .select('*, universities(*), university_programs(*)')
+      .select(`
+        *,
+        universities(*),
+        university_majors!applications_program_id_fkey(*)
+      `)
       .eq('id', id)
       .single();
     
@@ -378,5 +387,15 @@ export class ApplicationService {
       .eq('id', id);
 
     if (error) throw error;
+  }
+
+  static async getColleges(): Promise<College[]> {
+    const { data, error } = await supabase
+      .from('colleges')
+      .select('*')
+      .order('name');
+    
+    if (error) throw error;
+    return data;
   }
 } 

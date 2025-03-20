@@ -16,6 +16,7 @@ import {
   Typography,
   Paper,
   styled,
+  Autocomplete,
 } from '@mui/material';
 import { Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { CollegeCoursework } from '@/types/application';
@@ -26,6 +27,13 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   marginBottom: theme.spacing(3),
   backgroundColor: '#ffffff',
 }));
+
+interface College {
+  id: string;
+  name: string;
+  city?: string;
+  displayName: string;
+}
 
 interface CollegeCourseworkSectionProps {
   applicationId: string;
@@ -41,16 +49,16 @@ export function CollegeCourseworkSection({
   const { supabase } = useSupabase();
   const [coursework, setCoursework] = useState<CollegeCoursework[]>(initialCoursework);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedCollege, setSelectedCollege] = useState('');
+  const [selectedCollege, setSelectedCollege] = useState<College | null>(null);
   const [programType, setProgramType] = useState<CollegeCoursework['program_type']>('dual_enrollment');
   const [earnedDegree, setEarnedDegree] = useState<CollegeCoursework['earned_degree']>('None');
-  const [colleges, setColleges] = useState<Array<{ id: string; name: string }>>([]);
+  const [colleges, setColleges] = useState<College[]>([]);
   const [loading, setLoading] = useState(false);
 
   const loadColleges = async () => {
     const { data, error } = await supabase
-      .from('universities')
-      .select('id, name')
+      .from('colleges')
+      .select('*')
       .order('name');
     
     if (error) {
@@ -58,7 +66,29 @@ export function CollegeCourseworkSection({
       return;
     }
 
-    setColleges(data || []);
+    // Process colleges to create unique display names
+    const processedColleges = (data || []).map(college => ({
+      ...college,
+      displayName: college.city ? `${college.name} - ${college.city}` : college.name
+    }));
+
+    // Remove duplicates by keeping only the first occurrence of each displayName
+    const uniqueColleges = processedColleges.reduce((acc: College[], current: College) => {
+      const exists = acc.find((item: College) => item.displayName === current.displayName);
+      if (!exists) {
+        acc.push(current);
+      } else {
+        console.log(`Duplicate college found and removed: ${current.displayName}`);
+      }
+      return acc;
+    }, [] as College[]);
+
+    // Sort colleges by display name
+    const sortedColleges = uniqueColleges.sort((a: College, b: College) => 
+      a.displayName.localeCompare(b.displayName)
+    );
+
+    setColleges(sortedColleges);
   };
 
   const handleAddCoursework = async () => {
@@ -68,7 +98,7 @@ export function CollegeCourseworkSection({
         .from('college_coursework')
         .insert({
           application_id: applicationId,
-          college_id: selectedCollege,
+          college_id: selectedCollege?.id,
           program_type: programType,
           earned_degree: earnedDegree,
         })
@@ -133,7 +163,7 @@ export function CollegeCourseworkSection({
         >
           <Box>
             <Typography variant="subtitle1">
-              {colleges.find(c => c.id === course.college_id)?.name}
+              {colleges.find(c => c.id === course.college_id)?.displayName}
             </Typography>
             <Typography variant="body2" color="textSecondary">
               {course.program_type.replace('_', ' ')} • {course.earned_degree}
@@ -166,19 +196,21 @@ export function CollegeCourseworkSection({
           <Box sx={{ pt: 2, display: 'grid', gap: 3 }}>
             <FormControl fullWidth>
               <FormLabel>Name of College</FormLabel>
-              <TextField
-                select
+              <Autocomplete
                 value={selectedCollege}
-                onChange={(e) => setSelectedCollege(e.target.value)}
-                variant="outlined"
-                sx={{ backgroundColor: '#ffffff' }}
-              >
-                {colleges.map((college) => (
-                  <MenuItem key={college.id} value={college.id}>
-                    {college.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+                onChange={(_, newValue) => setSelectedCollege(newValue)}
+                options={colleges}
+                getOptionLabel={(option) => option.displayName}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    variant="outlined"
+                    placeholder="Search for a college..."
+                    sx={{ backgroundColor: '#ffffff' }}
+                  />
+                )}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+              />
             </FormControl>
 
             <FormControl fullWidth>

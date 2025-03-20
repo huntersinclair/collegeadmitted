@@ -19,6 +19,7 @@ import {
   Theme,
   Chip,
   Stack,
+  Autocomplete,
 } from '@mui/material';
 import { Application, GPAScale, DegreeType } from '@/types/application';
 import { CircularProgress } from '@mui/material';
@@ -56,6 +57,13 @@ interface FormData {
   gpa_weighting?: 'weighted' | 'unweighted';
   highest_degree_intended?: DegreeType;
   career_interest?: string;
+}
+
+interface College {
+  id: string;
+  name: string;
+  city?: string;
+  displayName: string;
 }
 
 const languageOptions = Array.from({ length: 10 }, (_, i) => i + 1);
@@ -104,8 +112,7 @@ export function AcademicStep({ application, onSave }: AcademicStepProps) {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [colleges, setColleges] = useState<Array<{ id: string; name: string }>>([]);
-  const [newCollege, setNewCollege] = useState('');
+  const [colleges, setColleges] = useState<College[]>([]);
 
   const loadColleges = useCallback(async () => {
     try {
@@ -115,7 +122,30 @@ export function AcademicStep({ application, onSave }: AcademicStepProps) {
         .order('name');
 
       if (error) throw error;
-      setColleges(data || []);
+      
+      // Process colleges to create unique display names
+      const processedColleges = (data || []).map(college => ({
+        ...college,
+        displayName: college.city ? `${college.name} - ${college.city}` : college.name
+      }));
+
+      // Remove duplicates by keeping only the first occurrence of each displayName
+      const uniqueColleges = processedColleges.reduce((acc: College[], current: College) => {
+        const exists = acc.find((item: College) => item.displayName === current.displayName);
+        if (!exists) {
+          acc.push(current);
+        } else {
+          console.log(`Duplicate college found and removed: ${current.displayName}`);
+        }
+        return acc;
+      }, [] as College[]);
+
+      // Sort colleges by display name
+      const sortedColleges = uniqueColleges.sort((a: College, b: College) => 
+        a.displayName.localeCompare(b.displayName)
+      );
+
+      setColleges(sortedColleges);
       setError(null);
     } catch (err) {
       console.error('Error loading colleges:', err);
@@ -146,7 +176,6 @@ export function AcademicStep({ application, onSave }: AcademicStepProps) {
         colleges_attended: [...(prev.colleges_attended || []), collegeId]
       }));
     }
-    setNewCollege('');
   };
 
   const handleRemoveCollege = (collegeId: string) => {
@@ -235,29 +264,32 @@ export function AcademicStep({ application, onSave }: AcademicStepProps) {
 
           <FormControl fullWidth>
             <FormLabel>Previous Colleges Attended</FormLabel>
-            <StyledSelect
-              select
-              value={newCollege}
-              onChange={(e) => handleAddCollege(e.target.value)}
-              variant="outlined"
-              sx={{ mb: 2 }}
-            >
-              <MenuItem value="">Select a college</MenuItem>
-              {colleges
-                .filter(college => !formData.colleges_attended?.includes(college.id))
-                .map((college) => (
-                  <MenuItem key={college.id} value={college.id}>
-                    {college.name}
-                  </MenuItem>
-                ))}
-            </StyledSelect>
+            <Autocomplete
+              value={null}
+              onChange={(_, newValue) => {
+                if (newValue) {
+                  handleAddCollege(newValue.id);
+                }
+              }}
+              options={colleges.filter(college => !formData.colleges_attended?.includes(college.id))}
+              getOptionLabel={(option) => option.displayName}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  variant="outlined"
+                  placeholder="Search for a college..."
+                  sx={{ mb: 2 }}
+                />
+              )}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+            />
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {formData.colleges_attended?.map((collegeId) => {
                 const college = colleges.find(c => c.id === collegeId);
                 return college ? (
                   <Chip
                     key={college.id}
-                    label={college.name}
+                    label={college.displayName}
                     onDelete={() => handleRemoveCollege(college.id)}
                     sx={{ mb: 1 }}
                   />

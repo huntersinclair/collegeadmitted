@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     # Mistral API Configuration
     MISTRAL_API_KEY: str = os.getenv("MISTRAL_API_KEY", "")
     
+    # CommonApp API Configuration
+    COMMONAPP_API_KEY: str = os.getenv("COMMONAPP_API_KEY", "")
+    COMMONAPP_ORIGIN: str = os.getenv("COMMONAPP_ORIGIN", "")
+    COMMONAPP_AUTH: str = os.getenv("COMMONAPP_AUTH", "")
+    
     # CORS Configuration
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
     

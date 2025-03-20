@@ -23,8 +23,10 @@ export interface University {
 export interface UniversityProgram {
   id: string;
   university_id: string;
-  name: string;
-  degree_type: string;
+  choice_label: string;
+  choice_value_id: number;
+  member_export_code?: string;
+  major_group?: string;
   created_at?: string;
 }
 
@@ -176,6 +178,17 @@ export interface CurrentCourse {
   course_level: CourseLevel;
   created_at: string;
   updated_at: string;
+}
+
+export interface College {
+  id: string;
+  name: string;
+  common_app_id: string;
+  country: string;
+  state?: string;
+  type: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export const COURSE_SUBJECTS = [
