@@ -63,13 +63,13 @@ export function UniversityStep({ application, onSave }: UniversityStepProps) {
 
   // Initialize selected program when programs are loaded
   useEffect(() => {
-    if (application.program_id && programs.length > 0) {
-      const program = programs.find(p => p.id === application.program_id);
+    if (application.university_major_id && programs.length > 0) {
+      const program = programs.find(p => p.id === application.university_major_id);
       if (program) {
         setSelectedProgram(program);
       }
     }
-  }, [programs, application.program_id]);
+  }, [programs, application.university_major_id]);
 
   const loadUniversities = async () => {
     try {
@@ -153,18 +153,24 @@ export function UniversityStep({ application, onSave }: UniversityStepProps) {
   };
 
   const handleSave = async () => {
+    setSaving(true);
     try {
-      setSaving(true);
-      await onSave({
+      // Only update if we have valid values
+      if (!selectedUniversity) {
+        throw new Error('Please select a university');
+      }
+
+      const updateData: Partial<Application> = {
         university_id: selectedUniversity,
-        program_id: selectedProgram?.id,
-        status: selectedUniversity && selectedProgram ? 'in_progress' : 'draft',
-      });
-      setError(null);
-    } catch (err) {
-      setError('Failed to save changes');
-      console.error(err);
-    } finally {
+        university_major_id: selectedProgram?.id,
+        status: 'in_progress'
+      };
+
+      await onSave(updateData);
+      setSaving(false);
+    } catch (error) {
+      console.error('Error saving university step:', error);
+      setError(error instanceof Error ? error.message : 'Failed to save changes');
       setSaving(false);
     }
   };
@@ -190,7 +196,7 @@ export function UniversityStep({ application, onSave }: UniversityStepProps) {
           <FormLabel>Select University</FormLabel>
           <Autocomplete
             value={universities.find(u => u.id === selectedUniversity) || null}
-            onChange={(_, newValue) => setSelectedUniversity(newValue?.id || '')}
+            onChange={(_, newValue) => setSelectedUniversity(newValue?.id)}
             options={universities}
             getOptionLabel={(option) => option.displayName}
             renderInput={(params) => (

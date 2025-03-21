@@ -1,59 +1,47 @@
 import React from 'react';
+import { Button as MuiButton, ButtonProps as MuiButtonProps, CircularProgress } from '@mui/material';
 
-interface ButtonProps {
-  type?: 'button' | 'submit' | 'reset';
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
-  fullWidth?: boolean;
-  disabled?: boolean;
-  onClick?: () => void;
-  children: React.ReactNode;
-  className?: string;
+interface ButtonProps extends Omit<MuiButtonProps, 'variant'> {
+  variant?: 'primary' | 'secondary' | 'outline';
+  loading?: boolean;
 }
 
 const Button: React.FC<ButtonProps> = ({
-  type = 'button',
-  variant = 'primary',
-  size = 'md',
-  fullWidth = false,
-  disabled = false,
-  onClick,
   children,
-  className = '',
+  variant = 'primary',
+  loading = false,
+  disabled,
+  ...props
 }) => {
-  // Base classes
-  const baseClasses = 'rounded font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
-  
-  // Size classes
-  const sizeClasses = {
-    sm: 'py-1 px-3 text-sm',
-    md: 'py-2 px-4 text-base',
-    lg: 'py-3 px-6 text-lg',
+  // Map our variants to Material UI variants and colors
+  const getButtonProps = () => {
+    switch (variant) {
+      case 'primary':
+        return { variant: 'contained', color: 'primary' };
+      case 'secondary':
+        return { variant: 'contained', color: 'secondary' };
+      case 'outline':
+        return { variant: 'outlined', color: 'primary' };
+      default:
+        return { variant: 'contained', color: 'primary' };
+    }
   };
-  
-  // Variant classes
-  const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-    secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
-    outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-  };
-  
-  // Width classes
-  const widthClasses = fullWidth ? 'w-full' : '';
-  
-  // Disabled classes
-  const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed' : '';
-  
+
   return (
-    <button
-      type={type}
-      className={`${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${widthClasses} ${disabledClasses} ${className}`}
-      disabled={disabled}
-      onClick={onClick}
+    <MuiButton
+      {...getButtonProps()}
+      disabled={disabled || loading}
+      {...props}
     >
+      {loading && (
+        <CircularProgress
+          size={16}
+          color="inherit"
+          sx={{ marginRight: 1 }}
+        />
+      )}
       {children}
-    </button>
+    </MuiButton>
   );
 };
 

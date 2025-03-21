@@ -15,25 +15,32 @@ import { Badge } from '@/components/ui/badge';
 import { Application, University, UniversityProgram } from '@/types/application';
 import { ApplicationService } from '@/services/applicationService';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ApplicationWithRelations extends Application {
   universities?: University;
-  university_majors?: UniversityProgram;
+  university_programs?: UniversityProgram;
 }
 
 export default function ApplicationsPage() {
   const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const [applications, setApplications] = useState<ApplicationWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      // Store the intended destination
+      sessionStorage.setItem('redirectTo', '/applications');
+      router.replace('/login');
+      return;
+    }
     loadApplications();
-  }, []);
+  }, [user, authLoading]);
 
   const loadApplications = async () => {
     try {
-      setLoading(true);
       const data = await ApplicationService.getUserApplications();
       setApplications(data);
       setError(null);
@@ -45,33 +52,26 @@ export default function ApplicationsPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return 'bg-gray-500';
-      case 'in_progress':
-        return 'bg-blue-500';
-      case 'completed':
-        return 'bg-green-500';
-      case 'submitted':
-        return 'bg-purple-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
   const handleCreateApplication = async () => {
+    if (!user) {
+      // Store the intended destination
+      sessionStorage.setItem('redirectTo', '/applications/new');
+      router.replace('/login');
+      return;
+    }
+
     try {
-      router.push('/applications/new');
+      const newApplication = await ApplicationService.createApplication({});
+      router.push(`/applications/application?id=${newApplication.id}`);
     } catch (err) {
+      console.error('Error:', err);
       setError('Failed to create application');
-      console.error(err);
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
-      <div className="container mx-auto py-8 flex justify-center items-center">
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -79,32 +79,39 @@ export default function ApplicationsPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">My Applications</h1>
-        <Button onClick={handleCreateApplication} className="bg-blue-600 hover:bg-blue-700">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Your Applications</h1>
+        <Button onClick={handleCreateApplication}>
           Create New Application
         </Button>
       </div>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          Couldn&apos;t load applications. Please try again.
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
         </div>
       )}
 
       {applications.length === 0 ? (
         <Card>
-          <CardContent className="py-8">
-            <div className="text-center">
-              <p className="text-gray-600 mb-4">You haven&apos;t created any applications yet.</p>
-              <Button onClick={handleCreateApplication} className="bg-blue-600 hover:bg-blue-700">
-                Create Your First Application
-              </Button>
-            </div>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <p className="text-gray-500 mb-4">No applications yet</p>
+            <Button onClick={handleCreateApplication}>
+              Create Your First Application
+            </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {applications.map((application) => (
             <Card key={application.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
@@ -114,27 +121,19 @@ export default function ApplicationsPage() {
                       {application.universities?.name || 'University Not Selected'}
                     </CardTitle>
                     <CardDescription>
-                      {application.university_majors?.choice_label || 'Program Not Selected'}
+                      {application.university_programs?.choice_label || 'Program Not Selected'}
                     </CardDescription>
                   </div>
-                  <Badge className={getStatusColor(application.status)}>
-                    {application.status.replace('_', ' ')}
+                  <Badge variant={application.status === 'draft' ? 'secondary' : 'default'}>
+                    {application.status}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {application.career_interest && (
-                    <p className="text-sm">Career Interest: {application.career_interest}</p>
-                  )}
-                  {application.highest_degree_intended && (
-                    <p className="text-sm">Degree: {application.highest_degree_intended}</p>
-                  )}
-                </div>
+                {/* Add any additional application details here */}
               </CardContent>
               <CardFooter>
-                <Button
-                  variant="outline"
+                <Button 
                   className="w-full"
                   onClick={() => router.push(`/applications/application?id=${application.id}`)}
                 >

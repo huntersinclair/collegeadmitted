@@ -9,7 +9,7 @@ from app.core.supabase import supabase_client
 from app.schemas.application import (
     ApplicationCreate, ApplicationUpdate, CourseCreate, HonorCreate,
     TestScoreCreate, ActivityCreate, EssayCreate, AdditionalInfoCreate,
-    FileCreate, FileUpdate
+    FileCreate, FileUpdate, ApplicationStatus
 )
 
 settings = get_settings()
@@ -23,10 +23,10 @@ class ApplicationService:
         try:
             application_data = {
                 "user_id": str(user_id),
-                "university_id": str(data.university_id),
-                "program_id": str(data.program_id),
-                "status": "draft",
-                **data.model_dump(exclude={'university_id', 'program_id'})
+                "university_id": str(data.university_id) if data.university_id else None,
+                "university_major_id": str(data.university_major_id) if data.university_major_id else None,
+                "status": ApplicationStatus.draft.value,
+                **data.model_dump(exclude={'university_id', 'university_major_id'})
             }
             
             response = supabase_client.table('applications').insert(application_data).execute()
@@ -65,7 +65,7 @@ class ApplicationService:
             response = supabase_client.from_('applications').select("""
                 *,
                 university:universities(name),
-                program:university_programs(name, degree_type)
+                program:university_majors(name, degree_type)
             """).eq('user_id', str(user_id)).execute()
             
             return response.data if response.data else []
@@ -267,7 +267,12 @@ class ApplicationService:
             raise
     
     @staticmethod
-    async def duplicate_application(user_id: UUID, application_id: UUID, new_university_id: UUID, new_program_id: UUID) -> dict:
+    async def duplicate_application(
+        user_id: UUID,
+        application_id: UUID,
+        new_university_id: UUID,
+        new_university_major_id: UUID
+    ) -> dict:
         """Create a new application by duplicating an existing one."""
         try:
             # Get the original application with all its data
@@ -276,25 +281,13 @@ class ApplicationService:
                 raise Exception("Original application not found")
             
             # Create new application with basic data
-            new_application_data = ApplicationCreate(
-                university_id=new_university_id,
-                program_id=new_program_id,
-                languages_count=original.get('languages_count'),
-                graduated_secondary=original.get('graduated_secondary'),
-                progression_changes=original.get('progression_changes'),
-                colleges_attended=original.get('colleges_attended'),
-                class_size=original.get('class_size'),
-                class_rank=original.get('class_rank'),
-                class_rank_percentile=original.get('class_rank_percentile'),
-                rank_weighting=original.get('rank_weighting'),
-                gpa_scale=original.get('gpa_scale'),
-                cumulative_gpa=original.get('cumulative_gpa'),
-                gpa_weighting=original.get('gpa_weighting'),
-                highest_degree_intended=original.get('highest_degree_intended'),
-                career_interest=original.get('career_interest')
-            )
+            application_data = {
+                **original,
+                "university_id": new_university_id,
+                "university_major_id": new_university_major_id,
+            }
             
-            new_application = await ApplicationService.create_application(user_id, new_application_data)
+            new_application = await ApplicationService.create_application(user_id, ApplicationCreate(**application_data))
             
             # Copy courses
             for course in original.get('courses', []):

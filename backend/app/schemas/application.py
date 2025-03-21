@@ -6,10 +6,10 @@ from enum import Enum
 
 
 class ApplicationStatus(str, Enum):
-    DRAFT = 'draft'
-    IN_PROGRESS = 'in_progress'
-    COMPLETED = 'completed'
-    SUBMITTED = 'submitted'
+    draft = 'draft'
+    in_progress = 'in_progress'
+    completed = 'completed'
+    submitted = 'submitted'
 
 
 class GPAScale(str, Enum):
@@ -214,9 +214,11 @@ class UniversityProgramCreate(UniversityProgramBase):
     university_id: UUID
 
 
-class ApplicationCreate(ApplicationBase):
-    university_id: UUID
-    program_id: UUID
+class ApplicationCreate(BaseModel):
+    user_id: UUID
+    university_id: Optional[UUID] = None
+    university_major_id: Optional[UUID] = None
+    status: ApplicationStatus = ApplicationStatus.draft
 
 
 class CourseCreate(CourseBase):
@@ -337,7 +339,7 @@ class Application(ApplicationBase):
     id: UUID
     user_id: UUID
     university_id: UUID
-    program_id: UUID
+    university_major_id: UUID
     status: ApplicationStatus
     courses: List[Course] = []
     honors: List[Honor] = []
@@ -362,7 +364,9 @@ class UniversityProgramUpdate(UniversityProgramBase):
     pass
 
 
-class ApplicationUpdate(ApplicationBase):
+class ApplicationUpdate(BaseModel):
+    university_id: Optional[UUID] = None
+    university_major_id: Optional[UUID] = None
     status: Optional[ApplicationStatus] = None
 
 

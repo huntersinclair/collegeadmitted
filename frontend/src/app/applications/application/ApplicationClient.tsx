@@ -12,6 +12,7 @@ import { AcademicStep } from './components/AcademicStep';
 import { ActivitiesStep } from './components/ActivitiesStep';
 import { EssaysStep } from './components/EssaysStep';
 import { ResumeStep } from './components/ResumeStep';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ApplicationWithRelations extends Application {
   universities?: University;
@@ -24,6 +25,7 @@ export function ApplicationClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const applicationId = searchParams.get('id');
+  const { user, isLoading: authLoading } = useAuth();
 
   const [application, setApplication] = useState<ApplicationWithRelations | null>(null);
   const [currentStep, setCurrentStep] = useState<Step>('university');
@@ -32,7 +34,7 @@ export function ApplicationClient() {
 
   useEffect(() => {
     const loadApplication = async () => {
-      if (!applicationId) {
+      if (!applicationId || !user) {
         setLoading(false);
         return;
       }
@@ -50,8 +52,10 @@ export function ApplicationClient() {
       }
     };
 
-    loadApplication();
-  }, [applicationId]);
+    if (!authLoading) {
+      loadApplication();
+    }
+  }, [applicationId, user, authLoading]);
 
   const steps: { key: Step; title: string }[] = [
     { key: 'university', title: 'University & Program' },

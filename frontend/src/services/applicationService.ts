@@ -41,7 +41,7 @@ export class ApplicationService {
       .select(`
         *,
         universities(*),
-        university_majors!applications_program_id_fkey(*)
+        university_majors!applications_university_major_id_fkey(*)
       `)
       .order('created_at', { ascending: false });
     
@@ -55,7 +55,7 @@ export class ApplicationService {
       .select(`
         *,
         universities(*),
-        university_majors!applications_program_id_fkey(*)
+        university_majors!applications_university_major_id_fkey(*)
       `)
       .eq('id', id)
       .single();
@@ -80,7 +80,7 @@ export class ApplicationService {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }])
-      .select('*, universities(*), university_programs(*)')
+      .select('*, universities(*), university_majors!applications_university_major_id_fkey(*)')
       .single();
     
     if (error) {

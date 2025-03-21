@@ -34,7 +34,7 @@ export interface Application {
   id: string;
   user_id: string;
   university_id?: string;
-  program_id?: string;
+  university_major_id?: string;
   status: ApplicationStatus;
   highest_degree_intended?: DegreeType;
   career_interest?: string;

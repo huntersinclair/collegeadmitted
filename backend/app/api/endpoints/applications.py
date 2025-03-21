@@ -277,7 +277,7 @@ async def list_university_programs(
 async def duplicate_application(
     application_id: UUID,
     new_university_id: UUID,
-    new_program_id: UUID,
+    new_university_major_id: UUID,
     current_user: dict = Depends(get_current_user)
 ) -> Application:
     """Create a new application by duplicating an existing one."""
@@ -286,7 +286,7 @@ async def duplicate_application(
             current_user["id"],
             application_id,
             new_university_id,
-            new_program_id
+            new_university_major_id
         )
     except Exception as e:
         raise HTTPException(

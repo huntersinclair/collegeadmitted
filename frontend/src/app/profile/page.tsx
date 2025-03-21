@@ -182,6 +182,21 @@ const ProfilePage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-8">
+          <div className="flex space-x-4 justify-center mb-6">
+            <Button
+              variant="primary"
+              onClick={() => router.push('/applications')}
+            >
+              Go to Applications
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push('/')}
+            >
+              Go to Home
+            </Button>
+          </div>
+
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900">
               {isNewUser ? 'Complete Your Profile' : 'Your Profile'}
@@ -222,22 +237,6 @@ const ProfilePage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex space-x-4 justify-center">
-                <button
-                  type="button"
-                  onClick={() => router.push('/applications')}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Go to Applications
-                </button>
-                <button
-                  type="button"
-                  onClick={() => router.push('/')}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Go to Home
-                </button>
-              </div>
             </div>
           )}
           
@@ -251,7 +250,6 @@ const ProfilePage: React.FC = () => {
               <Input
                 id="first_name"
                 name="first_name"
-                type="text"
                 label="First Name"
                 value={formData.first_name}
                 onChange={handleChange}
@@ -261,7 +259,6 @@ const ProfilePage: React.FC = () => {
               <Input
                 id="last_name"
                 name="last_name"
-                type="text"
                 label="Last Name"
                 value={formData.last_name}
                 onChange={handleChange}
@@ -270,7 +267,6 @@ const ProfilePage: React.FC = () => {
               <Input
                 id="school"
                 name="school"
-                type="text"
                 label="School"
                 value={formData.school}
                 onChange={handleChange}
@@ -280,8 +276,8 @@ const ProfilePage: React.FC = () => {
               <Input
                 id="graduation_year"
                 name="graduation_year"
-                type="number"
                 label="Graduation Year"
+                type="number"
                 value={formData.graduation_year}
                 onChange={handleChange}
                 required={isNewUser}
@@ -290,7 +286,6 @@ const ProfilePage: React.FC = () => {
               <Input
                 id="major"
                 name="major"
-                type="text"
                 label="Major"
                 value={formData.major}
                 onChange={handleChange}
@@ -300,23 +295,23 @@ const ProfilePage: React.FC = () => {
               <Input
                 id="bio"
                 name="bio"
-                type="text"
                 label="Bio"
                 value={formData.bio}
                 onChange={handleChange}
+                multiline
+                rows={3}
               />
               
               <div className="mt-6">
                 <Button
                   type="submit"
                   variant="primary"
-                  disabled={isUpdating}
+                  loading={isUpdating}
+                  fullWidth
                 >
-                  {isUpdating 
-                    ? 'Updating...' 
-                    : isNewUser 
-                      ? 'Complete Registration' 
-                      : 'Update Profile'
+                  {isNewUser 
+                    ? 'Complete Registration' 
+                    : 'Update Profile'
                   }
                 </Button>
               </div>
@@ -327,6 +322,7 @@ const ProfilePage: React.FC = () => {
                 <Button
                   variant="outline"
                   onClick={handleLogout}
+                  fullWidth
                 >
                   Sign Out
                 </Button>
