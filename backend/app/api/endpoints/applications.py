@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from uuid import UUID
 
-from app.core.auth import get_current_user
+from app.core.supabase import get_supabase_client
 from app.schemas.application import (
     Application, ApplicationCreate, ApplicationUpdate,
     CourseCreate, HonorCreate, TestScoreCreate, ActivityCreate,
@@ -13,6 +13,22 @@ from app.services.application_service import ApplicationService
 
 router = APIRouter()
 
+async def get_current_user():
+    """Get the current user from Supabase."""
+    supabase = get_supabase_client()
+    try:
+        user = supabase.auth.get_user()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated"
+            )
+        return user
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
 
 @router.post("/applications", response_model=Application, status_code=status.HTTP_201_CREATED)
 async def create_application(
