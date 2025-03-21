@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, use, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Application, University, UniversityProgram } from '@/types/application';
@@ -18,39 +18,40 @@ interface ApplicationWithRelations extends Application {
   university_programs?: UniversityProgram;
 }
 
-interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
-
 type Step = 'university' | 'academic' | 'activities' | 'essays' | 'resume';
 
-export default function ApplicationPage({ params }: PageProps) {
-  const resolvedParams = use(params);
+export function ApplicationClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get('id');
+
   const [application, setApplication] = useState<ApplicationWithRelations | null>(null);
   const [currentStep, setCurrentStep] = useState<Step>('university');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadApplication = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await ApplicationService.getApplication(resolvedParams.id);
-      setApplication(data);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load application');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [resolvedParams.id]);
-
   useEffect(() => {
+    const loadApplication = async () => {
+      if (!applicationId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const data = await ApplicationService.getApplication(applicationId);
+        setApplication(data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load application');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadApplication();
-  }, [loadApplication]);
+  }, [applicationId]);
 
   const steps: { key: Step; title: string }[] = [
     { key: 'university', title: 'University & Program' },
@@ -65,8 +66,10 @@ export default function ApplicationPage({ params }: PageProps) {
   };
 
   const handleSave = async (data: Partial<Application>) => {
+    if (!applicationId) return;
+    
     try {
-      const updated = await ApplicationService.updateApplication(resolvedParams.id, data);
+      const updated = await ApplicationService.updateApplication(applicationId, data);
       setApplication(updated);
       if (data.status === 'in_progress') {
         const nextStepIndex = steps.findIndex((step) => step.key === currentStep) + 1;
@@ -83,6 +86,21 @@ export default function ApplicationPage({ params }: PageProps) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!applicationId) {
+    return (
+      <div className="container mx-auto py-8">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <p className="text-red-500 mb-4">No application ID provided</p>
+            <Button onClick={() => router.push('/applications')}>
+              Back to Applications
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

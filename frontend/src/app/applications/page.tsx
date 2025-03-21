@@ -136,7 +136,7 @@ export default function ApplicationsPage() {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => router.push(`/applications/${application.id}`)}
+                  onClick={() => router.push(`/applications/application?id=${application.id}`)}
                 >
                   View Application
                 </Button>
