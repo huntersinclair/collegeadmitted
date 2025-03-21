@@ -113,7 +113,6 @@ const ProfilePage: React.FC = () => {
     try {
       const updatedProfile = await updateUserProfile(updateData);
       
-      // Transform the profile to ensure all fields have values
       setUserData({
         id: updatedProfile.id,
         email: updatedProfile.email,
@@ -133,13 +132,6 @@ const ProfilePage: React.FC = () => {
           ? 'Registration completed successfully! Your profile is now set up.'
           : 'Profile updated successfully!'
       );
-      
-      // If this was the initial setup and we have school info, redirect to dashboard
-      if (isNewUser && updateData.school) {
-        setTimeout(() => {
-          router.push('/');
-        }, 1500);
-      }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to update profile');
     } finally {
@@ -217,16 +209,34 @@ const ProfilePage: React.FC = () => {
           )}
           
           {successMessage && (
-            <div className="mt-4 bg-green-50 border-l-4 border-green-500 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
+            <div className="mt-4">
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-green-700">{successMessage}</p>
+                  </div>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm text-green-700">{successMessage}</p>
-                </div>
+              </div>
+              <div className="flex space-x-4 justify-center">
+                <button
+                  type="button"
+                  onClick={() => router.push('/applications')}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Go to Applications
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push('/')}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Go to Home
+                </button>
               </div>
             </div>
           )}
