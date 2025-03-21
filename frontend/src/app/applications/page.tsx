@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Button } from '../components/Button';
 import {
   Card,
   CardContent,
@@ -29,17 +29,7 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      // Store the intended destination
-      sessionStorage.setItem('redirectTo', '/applications');
-      router.replace('/login');
-      return;
-    }
-    loadApplications();
-  }, [user, authLoading]);
-
-  const loadApplications = async () => {
+  const loadApplications = useCallback(async () => {
     try {
       const data = await ApplicationService.getUserApplications();
       setApplications(data);
@@ -50,7 +40,17 @@ export default function ApplicationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      // Store the intended destination
+      sessionStorage.setItem('redirectTo', '/applications');
+      router.replace('/login');
+      return;
+    }
+    loadApplications();
+  }, [user, authLoading, router, loadApplications]);
 
   const handleCreateApplication = async () => {
     if (!user) {

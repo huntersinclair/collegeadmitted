@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Input from '../components/Input';
-import Button from '../components/Button';
+import { Button } from '../components/Button';
 import { getUserProfile, updateUserProfile, signOut, getSession } from '../api/auth';
 
 const ProfilePage: React.FC = () => {
@@ -184,13 +184,13 @@ const ProfilePage: React.FC = () => {
         <div className="px-6 py-8">
           <div className="flex space-x-4 justify-center mb-6">
             <Button
-              variant="primary"
+              variant="contained"
               onClick={() => router.push('/applications')}
             >
               Go to Applications
             </Button>
             <Button
-              variant="outline"
+              variant="outlined"
               onClick={() => router.push('/')}
             >
               Go to Home
@@ -305,7 +305,7 @@ const ProfilePage: React.FC = () => {
               <div className="mt-6">
                 <Button
                   type="submit"
-                  variant="primary"
+                  variant="contained"
                   loading={isUpdating}
                   fullWidth
                 >
@@ -320,7 +320,7 @@ const ProfilePage: React.FC = () => {
             {!isNewUser && (
               <div className="mt-8 pt-6 border-t border-gray-200">
                 <Button
-                  variant="outline"
+                  variant="outlined"
                   onClick={handleLogout}
                   fullWidth
                 >

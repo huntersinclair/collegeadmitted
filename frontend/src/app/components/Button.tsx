@@ -1,48 +1,42 @@
-import React from 'react';
-import { Button as MuiButton, ButtonProps as MuiButtonProps, CircularProgress } from '@mui/material';
+'use client';
 
-interface ButtonProps extends Omit<MuiButtonProps, 'variant'> {
-  variant?: 'primary' | 'secondary' | 'outline';
+import { forwardRef } from 'react';
+import { Button as MuiButton } from '@mui/material';
+import { ButtonProps as MuiButtonProps } from '@mui/material/Button';
+import { Loader2 } from 'lucide-react';
+
+export interface ButtonProps extends Omit<MuiButtonProps, 'color' | 'variant'> {
   loading?: boolean;
+  variant?: 'text' | 'outlined' | 'contained';
+  color?: 'inherit' | 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning';
 }
 
-const Button: React.FC<ButtonProps> = ({
-  children,
-  variant = 'primary',
-  loading = false,
-  disabled,
-  ...props
-}) => {
-  // Map our variants to Material UI variants and colors
-  const getButtonProps = () => {
-    switch (variant) {
-      case 'primary':
-        return { variant: 'contained', color: 'primary' };
-      case 'secondary':
-        return { variant: 'contained', color: 'secondary' };
-      case 'outline':
-        return { variant: 'outlined', color: 'primary' };
-      default:
-        return { variant: 'contained', color: 'primary' };
-    }
-  };
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ children, loading, disabled, variant = 'contained', color = 'primary', ...props }, ref) => {
+    const getButtonProps = () => {
+      const buttonProps: ButtonProps = {
+        variant,
+        color,
+      };
 
-  return (
-    <MuiButton
-      {...getButtonProps()}
-      disabled={disabled || loading}
-      {...props}
-    >
-      {loading && (
-        <CircularProgress
-          size={16}
-          color="inherit"
-          sx={{ marginRight: 1 }}
-        />
-      )}
-      {children}
-    </MuiButton>
-  );
-};
+      if (loading) {
+        buttonProps.startIcon = <Loader2 className="h-4 w-4 animate-spin" />;
+      }
 
-export default Button; 
+      return buttonProps;
+    };
+
+    return (
+      <MuiButton
+        ref={ref}
+        {...getButtonProps()}
+        disabled={disabled || loading}
+        {...props}
+      >
+        {children}
+      </MuiButton>
+    );
+  }
+);
+
+Button.displayName = 'Button'; 

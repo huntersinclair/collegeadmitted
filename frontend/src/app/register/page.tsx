@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Input from '../components/Input';
-import Button from '../components/Button';
+import { Button } from '../components/Button';
 import SocialButton from '../components/SocialButton';
 import { supabase } from '@/utils/supabaseClient';
 
@@ -171,7 +171,7 @@ const RegisterPage: React.FC = () => {
               <Button
                 type="submit"
                 fullWidth
-                variant="primary"
+                variant="contained"
                 loading={isLoading}
               >
                 Create Account
